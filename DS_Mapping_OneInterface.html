@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DS Component Mapping — OneInterface</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --vp:    #1B5E20; --vp-bg:  #E8F5E9; --vp-mid: #4CAF50;
+    --vc:    #0D47A1; --vc-bg:  #E3F2FD; --vc-mid: #2196F3;
+    --ad:    #E65100; --ad-bg:  #FFF8E1; --ad-mid: #FF9800;
+    --cu:    #B71C1C; --cu-bg:  #FCE4EC; --cu-mid: #F44336;
+    --ms:    #4527A0; --ms-bg:  #EDE7F6; --ms-mid: #7C4DFF;
+    --ink:   #101010; --ink2:  #37474F; --ink3: #78909C;
+    --bg:    #F8FAFC; --surface: #FFFFFF;
+    --border: #E2E8F0; --border2: #CBD5E1;
+    --blue:  #0D47A1;
+  }
+
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+
+  /* ── Header ── */
+  .header { background: var(--blue); color: #fff; padding: 28px 40px 24px; }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+  .header p  { font-size: 13px; opacity: .75; margin-top: 4px; }
+
+  /* ── Stats bar ── */
+  .stats { display: flex; gap: 12px; padding: 20px 40px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: border-color .15s, box-shadow .15s; flex: 1; min-width: 120px; }
+  .stat:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+  .stat.active { border-color: currentColor; }
+  .stat-vp  { background: var(--vp-bg); color: var(--vp); }
+  .stat-vc  { background: var(--vc-bg); color: var(--vc); }
+  .stat-ad  { background: var(--ad-bg); color: var(--ad); }
+  .stat-cu  { background: var(--cu-bg); color: var(--cu); }
+  .stat-ms  { background: var(--ms-bg); color: var(--ms); }
+  .stat-all { background: #F1F5F9; color: var(--ink2); }
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-info { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-size: 12px; font-weight: 600; }
+  .stat-sub   { font-size: 11px; opacity: .7; }
+
+  /* ── Controls ── */
+  .controls { padding: 16px 40px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .search-wrap { position: relative; flex: 1; min-width: 220px; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .4; pointer-events: none; }
+  #search { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--border2); border-radius: 8px; font-size: 13px; background: var(--bg); outline: none; transition: border-color .15s; }
+  #search:focus { border-color: var(--blue); }
+
+  .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border2); background: var(--bg); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; color: var(--ink2); }
+  .chip:hover { background: #E2E8F0; }
+  .chip.active { border-color: transparent; color: #fff; }
+  .chip.active.f-vp { background: var(--vp-mid); }
+  .chip.active.f-vc { background: var(--vc-mid); }
+  .chip.active.f-ad { background: var(--ad-mid); }
+  .chip.active.f-cu { background: var(--cu-mid); }
+  .chip.active.f-ms { background: var(--ms-mid); }
+  .chip.active.f-all { background: var(--blue); }
+
+  .sep { width: 1px; height: 24px; background: var(--border2); margin: 0 4px; }
+
+  select { padding: 6px 28px 6px 10px; border: 1px solid var(--border2); border-radius: 8px; font-size: 12px; background: var(--bg); cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378909C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; outline: none; }
+
+  .count-badge { margin-left: auto; font-size: 12px; color: var(--ink3); white-space: nowrap; }
+
+  /* ── Table ── */
+  .table-wrap { padding: 0 40px 40px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; background: var(--surface); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+  thead th { background: #1E293B; color: #fff; padding: 11px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
+  thead th:first-child { border-radius: 12px 0 0 0; }
+  thead th:last-child  { border-radius: 0 12px 0 0; }
+
+  .section-row td { background: #F1F5F9; padding: 9px 14px; font-size: 12px; font-weight: 700; color: var(--blue); letter-spacing: .4px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .section-row.sec-ms td { background: #F3E5F5; color: var(--ms); }
+
+  tbody tr:not(.section-row) { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:not(.section-row):hover { background: #F8FAFC; }
+  tbody tr:not(.section-row).alt { background: #FAFBFC; }
+  tbody tr:not(.section-row).alt:hover { background: #F1F5F9; }
+
+  td { padding: 11px 14px; vertical-align: top; }
+
+  .comp-name { font-weight: 600; font-size: 13px; color: var(--ink); }
+  .comp-desc { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+
+  /* status badge */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .badge-vp  { background: var(--vp-bg); color: var(--vp); }
+  .badge-vc  { background: var(--vc-bg); color: var(--vc); }
+  .badge-ad  { background: var(--ad-bg); color: var(--ad); }
+  .badge-cu  { background: var(--cu-bg); color: var(--cu); }
+  .badge-ms  { background: var(--ms-bg); color: var(--ms); }
+
+  /* effort pill */
+  .effort { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .effort-xs, .effort-s  { background: #E8F5E9; color: #2E7D32; }
+  .effort-m  { background: #FFF3E0; color: #E65100; }
+  .effort-l, .effort-xl  { background: #FCE4EC; color: #B71C1C; }
+
+  .ds-ref { font-size: 12px; color: var(--ink2); }
+  .notes  { font-size: 12px; color: var(--ink3); max-width: 340px; }
+
+  .col-name   { width: 180px; }
+  .col-status { width: 90px; }
+  .col-ds     { width: 200px; }
+  .col-effort { width: 80px; }
+  .col-notes  { }
+
+  /* empty state */
+  .empty { text-align: center; padding: 48px; color: var(--ink3); }
+  .empty svg { display: block; margin: 0 auto 12px; opacity: .3; }
+
+  /* ── Footer ── */
+  .footer { padding: 20px 40px; border-top: 1px solid var(--border); font-size: 12px; color: var(--ink3); display: flex; justify-content: space-between; align-items: center; }
+
+  /* hidden */
+  .hidden { display: none !important; }
+
+  @media (max-width: 900px) {
+    .header, .stats, .controls, .table-wrap, .footer { padding-left: 16px; padding-right: 16px; }
+    .col-notes { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>DS Component Mapping — OneInterface</h1>
+  <p>Vitamin Play Web · VC Lib · My Supply Design Library · Juillet 2026</p>
+</div>
+
+<div class="stats" id="stats-bar">
+  <div class="stat stat-all active" data-filter-stat="all" onclick="filterByStat('all',this)">
+    <span class="stat-num" id="cnt-all">69</span>
+    <div class="stat-info"><span class="stat-label">Tous</span><span class="stat-sub">composants</span></div>
+  </div>
+  <div class="stat stat-vp" data-filter-stat="VP" onclick="filterByStat('VP',this)">
+    <span class="stat-num" id="cnt-vp">24</span>
+    <div class="stat-info"><span class="stat-label">VP Prêt</span><span class="stat-sub">~15 j</span></div>
+  </div>
+  <div class="stat stat-vc" data-filter-stat="VC" onclick="filterByStat('VC',this)">
+    <span class="stat-num" id="cnt-vc">7</span>
+    <div class="stat-info"><span class="stat-label">VC Lib</span><span class="stat-sub">~8 j</span></div>
+  </div>
+  <div class="stat stat-ad" data-filter-stat="ADAPT" onclick="filterByStat('ADAPT',this)">
+    <span class="stat-num" id="cnt-ad">10</span>
+    <div class="stat-info"><span class="stat-label">À adapter</span><span class="stat-sub">~25 j</span></div>
+  </div>
+  <div class="stat stat-cu" data-filter-stat="CUSTOM" onclick="filterByStat('CUSTOM',this)">
+    <span class="stat-num" id="cnt-cu">13</span>
+    <div class="stat-info"><span class="stat-label">Custom</span><span class="stat-sub">~72 j</span></div>
+  </div>
+  <div class="stat stat-ms" data-filter-stat="MSDL" onclick="filterByStat('MSDL',this)">
+    <span class="stat-num" id="cnt-ms">15</span>
+    <div class="stat-info"><span class="stat-label">MS Library</span><span class="stat-sub">~29 j</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="Rechercher un composant…" oninput="applyFilters()">
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="filter-group" id="section-chips">
+    <span class="chip active f-all" data-sec="all" onclick="filterBySec('all',this)">Toutes sections</span>
+    <span class="chip f-all" data-sec="0" onclick="filterBySec('0',this)">Navigation</span>
+    <span class="chip f-all" data-sec="1" onclick="filterBySec('1',this)">Actions</span>
+    <span class="chip f-all" data-sec="2" onclick="filterBySec('2',this)">Data Display</span>
+    <span class="chip f-all" data-sec="3" onclick="filterBySec('3',this)">Overlays</span>
+    <span class="chip f-all" data-sec="4" onclick="filterBySec('4',this)">IA & Métier</span>
+    <span class="chip f-all" data-sec="5" onclick="filterBySec('5',this)">MS Library</span>
+  </div>
+
+  <div class="sep"></div>
+
+  <select id="effort-filter" onchange="applyFilters()">
+    <option value="all">Tous efforts</option>
+    <option value="XS">XS — ½ j</option>
+    <option value="S">S — 1 j</option>
+    <option value="M">M — 2-3 j</option>
+    <option value="L">L — 4-5 j</option>
+    <option value="XL">XL — 7 j+</option>
+  </select>
+
+  <span class="count-badge" id="count-badge">69 composants</span>
+</div>
+
+<div class="table-wrap">
+<table id="main-table">
+<thead>
+  <tr>
+    <th class="col-name">Composant</th>
+    <th class="col-status">Statut DS</th>
+    <th class="col-ds">Composant DS / référence</th>
+    <th class="col-effort">Effort</th>
+    <th class="col-notes">Notes & recommandations</th>
+  </tr>
+</thead>
+<tbody id="table-body">
+</tbody>
+</table>
+<div class="empty hidden" id="empty-state">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  Aucun composant ne correspond aux filtres sélectionnés.
+</div>
+</div>
+
+<div class="footer">
+  <span>OneInterface · DS Mapping · Juillet 2026</span>
+  <span>Source : vitamin-play-web-main · component-lib-vc-main · Figma gLMXfdphJQyjtAgRk4mmBO</span>
+</div>
+
+<script>
+const SECTIONS = [
+  '1. Navigation & Layout',
+  '2. Actions & Contrôles',
+  '3. Data Display',
+  '4. Overlays & Panels',
+  '5. IA & Composants Spécifiques Métier',
+  '6. My Supply Design Library',
+];
+
+// [name, desc, status, dsRef, effort, notes, sectionIndex]
+const DATA = [
+  // ── 1. Navigation & Layout ──
+  ['Side navigation', 'Rail vertical fixe avec icônes, libellés, collapse/expand, bandeau releases', 'MSDL', 'MS Design Library — Sidebar component', 'L', 'Composant entièrement designé dans la My Supply Design Library avec 5 variantes de contenu, mode collapsed, header et items multi-niveaux', 0],
+  ['Top bar', 'Barre supérieure : breadcrumb, recherche globale, notifications, avatar', 'ADAPT', 'VpNavigationHeader + VpBreadcrumbs + VpSearch + VpIconButton', 'M', 'Composition de 4 composants VP dans un layout custom ; LvcHeader possible pour le shell', 0],
+  ['Breadcrumb', 'Fil d\'Ariane contextuel avec séparateurs', 'VP', 'VpBreadcrumbs', 'XS', 'Mapping direct, tokens inclus', 0],
+  ['Global search', 'Champ de recherche avec icône et filtres contextuels', 'VP', 'VpSearch', 'S', 'Slot de filtres contextuels en overlay custom', 0],
+  ['View switcher', 'Bascule Table / Kanban sur la vue Operate', 'VP', 'VpChip — VpRadioGroupChip', 'XS', 'Groupe de chips radio ; style icône+texte natif dans VP', 0],
+  ['Split layout', 'Mise en page deux colonnes : liste alertes + deep dive', 'CUSTOM', '—', 'S', 'Structure CSS pure ; VpDrawer côté droit pour le deep dive', 0],
+  ['Filter bar', 'Barre de filtres horizontale : type, sévérité, pays, canal, code AB…', 'VP', 'VpActionChip / VpCheckboxChip', 'M', 'Mapping direct VpChip ; conteneur scrollable et groupes de labels = wrapper custom', 0],
+  ['Config tabs', 'Onglets de navigation Settings', 'VP', 'VpTabs', 'XS', 'Mapping direct', 0],
+
+  // ── 2. Actions & Contrôles ──
+  ['Primary button', 'Bouton d\'action principal (Valider, Confirmer)', 'VP', 'VpButton — primary', 'XS', 'Mapping direct', 1],
+  ['Secondary / small button', 'Boutons secondaires et taille réduite', 'VP', 'VpButton — secondary / tertiary / small', 'XS', 'Mapping direct ; variante size=small disponible', 1],
+  ['Icon button', 'Bouton icône circulaire (notifications, actions header)', 'VP', 'VpIconButton', 'XS', 'Mapping direct', 1],
+  ['Bulk action bar', 'Barre d\'actions groupées sur sélection multiple d\'alertes', 'ADAPT', 'VpButton × N + conteneur sticky custom', 'M', 'Positionnement et conteneur custom ; actions = VpButton', 1],
+  ['Toggle switch', 'Interrupteur binaire (Forecast/Pilotage, dark mode)', 'VP', 'VpToggle', 'XS', 'Mapping direct', 1],
+  ['Checkbox', 'Case à cocher pour sélection en tableau', 'VP', 'VpCheckbox', 'XS', 'Mapping direct', 1],
+  ['Select dropdown', 'Menu déroulant dans filtres et paramètres', 'VP', 'VpSelect', 'XS', 'Mapping direct', 1],
+  ['Combobox', 'Saisie avec autocomplétion (scope, article, entrepôt)', 'VP', 'VpCombobox', 'S', 'Mapper la logique métier d\'autocomplétion', 1],
+  ['Quantity input', 'Champ numérique pour saisie de seuils et ajustements forecast', 'VP', 'VpInputQuantity', 'XS', 'Mapping direct avec validation min/max', 1],
+  ['Textarea', 'Zone de saisie multiligne pour le chat Copilot', 'VP', 'VpTextarea', 'XS', 'Mapping direct', 1],
+  ['Radio group', 'Sélection d\'approche unique (Confirmer / Ajuster / Ignorer)', 'VP', 'VpRadioGroup', 'XS', 'Mapping direct', 1],
+  ['Action card', 'Carte d\'action contextuelle avec icône, titre et CTA', 'ADAPT', 'VpButton + surface card custom', 'M', 'Pas de composant "action card" dans VP ; construire via tokens button + surface + ombre', 1],
+
+  // ── 3. Data Display ──
+  ['Alert table / kanban', 'Liste d\'alertes vue tableau ou kanban, colonnes triables, clustering', 'CUSTOM', '—', 'XL', 'Aucun composant table dans VP ; construire avec TanStack Table ou AG Grid, styles via tokens VP', 2],
+  ['KPI tiles', 'Tuiles métriques : valeur principale, delta, tendance', 'CUSTOM', '—', 'L', 'VP n\'a pas de composant KPI/metric ; design via tokens, logique delta custom', 2],
+  ['Severity badge', 'Pastille colorée critique / haute / moyenne / basse', 'VP', 'VpBadge', 'XS', 'Mapping direct sur les variantes de couleur du badge VP', 2],
+  ['Confidence tag', 'Tag de niveau de confiance IA', 'VP', 'VpBadge — outline variant', 'XS', 'VpBadge outline ; couleur sémantique custom', 2],
+  ['Type tag', 'Étiquette de type d\'alerte (Param. entrepôt, Sous-stock…)', 'VP', 'VpSticker', 'XS', 'Mapping direct ; VpSticker couvre les labels contextuels', 2],
+  ['Progress bar', 'Barre de progression pour couverture ou SLA', 'VP', 'VpProgressBar', 'XS', 'Mapping direct', 2],
+  ['Skeleton loader', 'État de chargement squelette pour listes et graphiques', 'VP', 'VpSkeleton', 'XS', 'Mapping direct', 2],
+  ['Loader / spinner', 'Indicateur de chargement pour les requêtes IA', 'VP', 'VpLoader', 'XS', 'Mapping direct', 2],
+  ['Trajectory chart', 'Graphique de trajectoire avec courbes, CI band, jalons et météo', 'CUSTOM', '—', 'XL', 'SVG full-custom ; adopter Recharts ou Nivo, wrapper composant React ; CI band, météo, mode pilotage = logique métier', 2],
+  ['Analytics chart', 'Graphique multi-courbes analytics avec ref lines et zone météo', 'CUSTOM', '—', 'XL', 'Même approche que le chart trajectoire ; ref lines en right-margin, lane météo, export = développement dédié', 2],
+  ['Scenario ledger', 'Tableau de comparaison de scénarios avec lignes éditables', 'CUSTOM', '—', 'L', 'Grille tabulaire spécifique ; tokens VP pour typo/couleurs ; inline-edit custom', 2],
+  ['Data table (generic)', 'Tableau de données (stock réseau, top articles…)', 'CUSTOM', '—', 'L', 'Même constat que la table d\'alertes ; TanStack Table recommandé', 2],
+  ['Collab trail', 'Journal d\'activité collaboratif avec avatars, messages, timestamps', 'CUSTOM', '—', 'L', 'Feed d\'activité ; avatars = VpAsset, fil de messages et timestamps = custom', 2],
+  ['Assignee avatar stack', 'Pile d\'avatars pour utilisateurs assignés à une alerte', 'ADAPT', 'VpAsset (avatar) × N', 'S', 'Empiler les VpAsset en overflow avec badge "+N" custom', 2],
+  ['Score indicator', 'Indicateur visuel de score de confiance IA', 'VP', 'VpScoreRating', 'XS', 'Mapping direct si score sur 5 ; adapter le range si nécessaire', 2],
+
+  // ── 4. Overlays & Panels ──
+  ['Deep dive drawer', 'Panneau latéral droit full-height pour le détail d\'une alerte', 'VC', 'LvcDrawer', 'M', 'LvcDrawer couvre overlay, animation, focus trap ; contenu interne (charts, ledger, tabs) entièrement custom. Vérifier node 17:1686 dans MS Design Library', 3],
+  ['Copilot panel', 'Panneau IA flottant style marque-page ancré en haut à droite', 'ADAPT', 'LvcDrawer ou VpModal side + layout custom', 'M', 'Positionnement bookmark custom ; LvcDrawer en mode ancré offre l\'animation ; chat feed + input = custom', 3],
+  ['Notification panel', 'Panneau de notifications avec liste et compteur', 'ADAPT', 'VpModal ou LvcDialog + VpBadge (counter)', 'M', 'Liste custom ; compteur cloche = VpBadge ; overlay = LvcDialog', 3],
+  ['"See all" modal', 'Modale plein écran listant toutes les notifications', 'VC', 'LvcModal', 'S', 'Mapping direct ; en-tête + footer CTA + liste scrollable', 3],
+  ['Cluster drawer', 'Panneau d\'expansion d\'un cluster d\'alertes corrélées', 'VC', 'LvcDrawer', 'M', 'Même base que le deep dive ; visualisation de corrélation = custom', 3],
+  ['Toast notification', 'Notification éphémère (action validée, erreur)', 'VC', 'LvcSnackbar', 'XS', 'Mapping direct ; LvcSnackbarActionButton disponible', 3],
+  ['Confirmation dialog', 'Dialogue de confirmation (Ignorer alerte, Supprimer règle…)', 'VC', 'LvcDialog', 'XS', 'Mapping direct ; LvcDialogActions couvre les boutons', 3],
+  ['Release notes banner', 'Bandeau de release notes dans la sidebar', 'VC', 'LvcBanner', 'XS', 'Mapping direct ; closeable + icône + texte', 3],
+  ['Rule AI banner', 'Bandeau d\'information IA dans le Rule Builder', 'VC', 'LvcBanner — info variant', 'XS', 'Mapping direct', 3],
+  ['Alert sticky action bar', 'Barre d\'actions sticky sur une alerte (Valider / Partager / Snooze / Ignorer)', 'ADAPT', 'VpButton × 4 + conteneur sticky custom', 'M', 'Positionnement fixe custom, boutons = VpButton', 3],
+
+  // ── 5. IA & Composants Spécifiques Métier ──
+  ['Copilot FAB bookmark', 'Bouton flottant IA style marque-page ancré à droite', 'CUSTOM', '—', 'S', 'Aucun équivalent dans VP/VC ; composant custom léger ; tokens couleur et border-radius VP', 4],
+  ['AI recommendation card', 'Carte de recommandation IA avec titre, impact et actions rapides', 'ADAPT', 'VpButton + surface card custom', 'L', 'Tokens VP pour surface, typo, couleurs IA ; logique d\'état accepted/refused custom', 4],
+  ['AI agent chat', 'Interface de chat avec l\'agent IA : messages, outils, streaming', 'CUSTOM', '—', 'XL', 'Composant de chat entièrement custom ; VpTextarea pour l\'input, VpButton pour l\'envoi', 4],
+  ['Rule builder', 'Éditeur de règles d\'automatisation avec conditions imbriquées', 'CUSTOM', '—', 'XL', 'Query builder sans équivalent dans VP/VC ; évaluer react-querybuilder avant de partir from scratch', 4],
+  ['Proactive automation card', 'Carte de suggestion d\'automatisation proactive sur Home', 'ADAPT', 'VpButton + surface card + LvcBanner', 'M', 'Carte informative avec CTA ; assemblage de composants VP + conteneur custom', 4],
+  ['Scenario mode toggle', 'Sélecteur Forecast vs Pilotage sur le chart trajectoire', 'VP', 'VpChip — VpRadioGroupChip', 'XS', 'Mapping direct sur groupe de chips radio', 4],
+  ['Code AB filter', 'Filtre par code article A/B/C dans la barre Operate', 'VP', 'VpActionChip', 'XS', 'Mapping direct', 4],
+  ['Network stock hierarchy', 'Vue hiérarchique CAC → CAR → Magasin avec drill-down', 'CUSTOM', '—', 'XL', 'Navigation arborescente value chain ; VpTabs / VpBreadcrumbs pour le chemin, drill-down full custom', 4],
+  ['Seasonal milestones', 'Timeline de jalons saisonniers dans Analytics', 'CUSTOM', '—', 'L', 'Composant de timeline custom ; intégrer comme swim-lane dans le chart analytics', 4],
+  ['Template gallery', 'Galerie de templates pour l\'automatisation des analyses (Optimize)', 'ADAPT', 'VpProductCard ou surface card custom', 'M', 'VpProductCard peut servir de base ; logique de sélection et configuration = custom', 4],
+
+  // ── 6. My Supply Design Library ──
+  ['Sidebar (full)', 'Navigation latérale principale avec header, zones de contenu et mode collapsed', 'MSDL', 'Node 245:5009 — Sidebar ✅', 'L', '5 variantes de contenu ; mode collapsed (56px) ; design complet avec tous états', 5],
+  ['Sidebar Header', 'En-tête de la sidebar : titre/search toggle + mode Alerts', 'MSDL', 'Node 245:5009 — Sidebar Header', 'S', 'Variantes Default et Alerts ; collapsed/expanded ; intègre lvc/web/Status Indicator', 5],
+  ['Sidebar Item / Category', 'Item de navigation de niveau catégorie (1er niveau)', 'MSDL', 'Node 245:5009 — Sidebar Item / Category', 'M', 'États : Default, Hover, Active, Active & Hover, Disabled ; Collapsed / Expanded ; Expandable', 5],
+  ['Sidebar Item / 1st Level', 'Item de navigation de 1er niveau avec sous-items', 'MSDL', 'Node 245:5009 — Sidebar Item / 1st Level', 'M', 'États complets ; Expandable + Expanded combinatoire ; design finalisé', 5],
+  ['Sidebar Item / 2nd Level', 'Item de navigation de 2ème niveau (sous-élément)', 'MSDL', 'Node 245:5009 — Sidebar Item / 2nd Level', 'S', 'États : Default, Hover, Active, Active & Hover, Disabled', 5],
+  ['Sidebar Item / Search', 'Item de résultats de recherche dans la sidebar', 'MSDL', 'Node 245:5009 — Sidebar Item / Search', 'S', 'États : Default, Hover, Active, Disabled', 5],
+  ['Sidebar Item / Search history', 'Item d\'historique de recherche avec favoris', 'MSDL', 'Node 245:5009 — Sidebar Item / Search history', 'S', 'États complets ; hauteur 61px (vs 36px pour les items standards)', 5],
+  ['Sidebar Item / Alerts Filters', 'Filtre d\'alertes dans la sidebar (All / To Treat / Treated)', 'MSDL', 'Node 245:5009 — Sidebar Item / Alerts Filters', 'S', 'Variantes : Selected × Alerts treated ; intègre lvc/web/Status Indicator', 5],
+  ['Popover menu', 'Menu popover de la sidebar (Recently searched, Favorites, Product hierarchy)', 'MSDL', 'Node 245:5009 — Popover menu', 'M', '3 types de contenu avec structures différentes ; intègre Popover header + sections', 5],
+  ['Popover / Item', 'Item individuel du menu popover avec gestion des favoris', 'MSDL', 'Node 245:5009 — Popover / Item', 'S', 'États : Default, Hover, Active, Active & Hover, Disabled ; variante Fav active / inactive', 5],
+  ['Alert counter tab', 'Compteur d\'alertes par onglet (3 compteurs + Status Indicator)', 'MSDL', 'Node 245:5009 — Frame 2353 (Alerts counter)', 'S', 'Utilise lvc/web/Status Indicator pour chaque compteur ; tab name éditable', 5],
+  ['Notification dot', 'Pastille de notification active/inactive sur l\'icône de la sidebar', 'MSDL', 'Node 245:5009 — Notif Alerts Actives', 'XS', 'Composant simple 2 états : Active / Default (32×32px)', 5],
+  ['Drawer', 'Panneau latéral de détail — design complet', 'MSDL', 'Node 17:1686 — Drawer', 'L', 'Design Library (node 17:1686) — à consulter directement dans Figma pour le détail des variantes', 5],
+  ['Mega menu / Menu Header', 'En-tête de menu principal (section label)', 'MSDL', 'Node 307:15842 — Menu Header', 'XS', 'Heading Geist SemiBold 24px ; lettre-espacement -0.48px', 5],
+];
+
+const BADGE = { VP:'badge-vp', VC:'badge-vc', ADAPT:'badge-ad', CUSTOM:'badge-cu', MSDL:'badge-ms' };
+const BADGE_LABEL = { VP:'VP Prêt', VC:'VC Lib', ADAPT:'À adapter', CUSTOM:'Custom', MSDL:'MS Library' };
+const EFFORT_CLS = { XS:'effort-xs', S:'effort-s', M:'effort-m', L:'effort-l', XL:'effort-xl' };
+const EFFORT_LBL = { XS:'XS — ½j', S:'S — 1j', M:'M — 2-3j', L:'L — 4-5j', XL:'XL — 7j+' };
+
+let activeStat = 'all';
+let activeSec  = 'all';
+
+function renderTable() {
+  const search = document.getElementById('search').value.toLowerCase().trim();
+  const effortF = document.getElementById('effort-filter').value;
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  let visibleCount = 0;
+  let lastSection = -1;
+  let rowIndex = 0;
+
+  DATA.forEach(row => {
+    const [name, desc, status, dsRef, effort, notes, secIdx] = row;
+
+    // filters
+    if (activeStat !== 'all' && status !== activeStat) return;
+    if (activeSec  !== 'all' && String(secIdx) !== activeSec) return;
+    if (effortF !== 'all' && effort !== effortF) return;
+    if (search && !name.toLowerCase().includes(search) && !desc.toLowerCase().includes(search) && !dsRef.toLowerCase().includes(search) && !notes.toLowerCase().includes(search)) return;
+
+    // section header
+    if (secIdx !== lastSection) {
+      const sr = document.createElement('tr');
+      sr.className = 'section-row' + (secIdx === 5 ? ' sec-ms' : '');
+      sr.innerHTML = `<td colspan="5">${SECTIONS[secIdx]}</td>`;
+      tbody.appendChild(sr);
+      lastSection = secIdx;
+    }
+
+    const tr = document.createElement('tr');
+    if (rowIndex % 2 === 1) tr.className = 'alt';
+    tr.innerHTML = `
+      <td class="col-name">
+        <div class="comp-name">${name}</div>
+        <div class="comp-desc">${desc}</div>
+      </td>
+      <td class="col-status"><span class="badge ${BADGE[status]}">${BADGE_LABEL[status]}</span></td>
+      <td class="col-ds ds-ref">${dsRef}</td>
+      <td class="col-effort"><span class="effort ${EFFORT_CLS[effort]}">${EFFORT_LBL[effort]}</span></td>
+      <td class="col-notes notes">${notes}</td>
+    `;
+    tbody.appendChild(tr);
+    visibleCount++;
+    rowIndex++;
+  });
+
+  document.getElementById('count-badge').textContent = visibleCount + ' composant' + (visibleCount !== 1 ? 's' : '');
+  document.getElementById('empty-state').classList.toggle('hidden', visibleCount > 0);
+  document.getElementById('main-table').classList.toggle('hidden', visibleCount === 0);
+}
+
+function filterByStat(val, el) {
+  activeStat = val;
+  document.querySelectorAll('.stat').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function filterBySec(val, el) {
+  activeSec = val;
+  document.querySelectorAll('#section-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function applyFilters() { renderTable(); }
+
+// initial render
+renderTable();
+</script>
+</body>
+</html>
